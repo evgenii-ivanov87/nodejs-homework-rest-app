@@ -6,7 +6,7 @@ const {
   createContact,
   deleteContact,
   patchContact,
-} = require('../../controllers/controllers-contacts')
+} = require('../../../controllers/controllers-contacts')
 const validate = require('./validation')
 
 router
