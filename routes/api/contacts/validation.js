@@ -1,45 +1,67 @@
 const Joi = require('joi')
 
-const schemaCreateContact = Joi.object({
-  name: Joi.string().alphanum().min(3).max(30).required(),
-  email: Joi.string().email().min(3).max(30).required(),
-  phone: Joi.string()
-    .length(10)
-    .pattern(/^[0-9]+$/)
+const schemaAddContact = Joi.object({
+  name: Joi.string()
+    // .regex(/^[-a-zA-Z ]*$/)
+    .regex(/[A-Z]\w+ [A-Z]\w+/)
+    .min(2)
+    .max(30)
     .required(),
-  subscription: Joi.string().optional(),
-  password: Joi.string().optional(),
-  token: Joi.string().optional(),
+
+  email: Joi.string()
+    .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required(),
+
+  phone: Joi.string()
+    .pattern(/^\([0-9]{3}\) [0-9]{3}-[0-9]{4}$/)
+    .required(),
+
+  // favorite: Joi.boolean().required()
 })
 
 const schemaUpdateContact = Joi.object({
-  name: Joi.string().alphanum().min(3).max(30).optional(),
-  email: Joi.string().email().min(3).max(30).optional(),
-  phone: Joi.string()
-    .length(10)
-    .pattern(/^[0-9]+$/)
+  name: Joi.string()
+    .regex(/^[-a-zA-Z ]*$/)
+    .min(2)
+    .max(30)
     .optional(),
-  subscription: Joi.string().optional(),
-  password: Joi.string().optional(),
-  token: Joi.string().optional(),
+
+  email: Joi.string()
+    .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } })
+    .optional(),
+
+  phone: Joi.string()
+    .pattern(/^\([0-9]{3}\) [0-9]{3}-[0-9]{4}$/)
+    .optional(),
+
+  // favorite: Joi.boolean().required()
+
+}).min(1)
+
+const schemaUpdateStatus = Joi.object({
+  favorite: Joi.boolean().required()
 })
 
-const validate = (schema, obj, next) => {
-  const { error } = schema.validate(obj)
-  if (error) {
-    const [{ message }] = error.details
-    return next({
-      status: 400,
-      message: `Filed: ${message.replace(/'/g, '')}`,
-    })
+const validate = async (schema, body, next) => {
+  try {
+    await schema.validateAsync(body)
+    next()
+  } catch (err) {
+    next({ status: 'error', code: 400, message: 'Bad request' })
   }
-  next()
 }
 
-module.exports.createContact = (req, res, next) => {
-  return validate(schemaCreateContact, req.body, next)
+const validateAddContact = (req, _res, next) => {
+  return validate(schemaAddContact, req.body, next)
 }
 
-module.exports.updateContact = (req, res, next) => {
+const validateUpdateContact = (req, _res, next) => {
   return validate(schemaUpdateContact, req.body, next)
+}
+
+const validateUpdateStatus = (req, _res, next) => {
+  return validate(schemaUpdateStatus, req.body, next)
+}
+
+module.exports = {
+  validateAddContact, validateUpdateContact, validateUpdateStatus
 }
