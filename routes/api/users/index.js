@@ -1,22 +1,13 @@
-const express = require('express')
-const router = express.Router()
-const guard = require('../../../helpers/guard')
-const { reg, login, logout, getCurrentUser, updateSubscription } = require('../../../controllers/users')
-const { validateSignup, validateLogin, validateUpdateSubcription } = require('./validation')
+const express = require('express');
+const router = express.Router();
+const ctrl = require('../../../controllers/users');
+const guard = require('../../../helpers/guard');
+const upload = require('../../../helpers/multer');
 
-// регистрация
-router.post('/signup', validateSignup, reg)
+router.post('/signup', ctrl.signup);
+router.post('/login', ctrl.login);
+router.post('/logout', guard, ctrl.logout);
+router.get('/current', guard, ctrl.current);
+router.patch('/avatars', guard, upload.single('avatar'), ctrl.avatars);
 
-// логин
-router.post('/login', validateLogin, login)
-
-// логаут
-router.post('/logout', guard, logout)
-
-// данные текущего пользователя
-router.get('/current', guard, getCurrentUser)
-
-// обновление подписки
-router.patch('/', guard, validateUpdateSubcription, updateSubscription)
-
-module.exports = router
+module.exports = router;

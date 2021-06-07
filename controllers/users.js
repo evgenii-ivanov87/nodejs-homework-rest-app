@@ -1,122 +1,107 @@
-const jwt = require('jsonwebtoken')
-require('dotenv').config()
-const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY
-const Users = require('../model/users')
-const { HttpCode } = require('../helpers/constants')
-// const User = require('../model/schemas/user')
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+const Users = require('../model/users');
+const { HttpCode } = require('../helpers/constants');
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
-// регистрация
-const reg = async (req, res, next) => {
+const signup = async (req, res, next) => {
   try {
-    const user = await Users.findByEmail(req.body.email)
+    const user = await Users.findByEmail(req.body.email);
     if (user) {
       return res.status(HttpCode.CONFLICT).json({
-        status: 'error',
+        status: '409 Conflict',
         code: HttpCode.CONFLICT,
-        message: 'Email is already used'
-      })
+        message: 'Email is in use',
+      });
     }
-    const newUser = await Users.create(req.body)
-    const { email, subscription } = newUser
+    const newUser = await Users.createUser(req.body);
+    const { id, email, subscription, avatarURL } = newUser;
     return res.status(HttpCode.CREATED).json({
-      status: 'success',
+      status: '201 Created',
       code: HttpCode.CREATED,
-      data: { user: { email, subscription } }
-    })
-  } catch (err) {
-    next(err)
+      data: {
+        id,
+        email,
+        subscription,
+        avatarURL,
+      },
+    });
+  } catch (e) {
+    next(e);
   }
-}
+};
 
-// логин
 const login = async (req, res, next) => {
   try {
-    const { email, password, subscription } = req.body
-    const user = await Users.findByEmail(email)
-    const isValidPassword = await user?.validPassword(password)
+    const { email, password } = req.body;
+    const user = await Users.findByEmail(email);
+    const isValidPassword = await user?.validPassword(password);
 
     if (!user || !isValidPassword) {
-      return res.status(HttpCode.UNATHORIZED).json({
-        status: 'error',
-        code: HttpCode.UNATHORIZED,
-        message: 'Not authorized'
-      })
+      return res.status(HttpCode.UNAUTHORIZED).json({
+        status: '401 Unauthorized',
+        code: HttpCode.UNAUTHORIZED,
+        message: 'Email or password is wrong',
+      });
     }
-    const payload = { id: user.id }
-    const token = jwt.sign(payload, JWT_SECRET_KEY, { expiresIn: '1w' })
-    await Users.updateToken(user.id, token)
-    return res.status(HttpCode.OK).json({
-      status: 'success',
-      code: HttpCode.OK,
-      data: { token, user: { subscription, email } }
-    })
-  } catch (err) {
-    next(err)
-  }
-}
 
-// логаут
+    const payload = { id: user.id };
+    const token = jwt.sign(payload, JWT_SECRET_KEY, { expiresIn: '2h' });
+    await Users.updateToken(user.id, token);
+    return res.status(HttpCode.OK).json({
+      status: '200 OK',
+      code: HttpCode.OK,
+      data: {
+        token,
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
 const logout = async (req, res, next) => {
   try {
-    await Users.updateToken(req.user.id, null)
-    if (!req.user) {
-      return res.status(HttpCode.UNATHORIZED).json({
-        status: 'error',
-        code: HttpCode.UNATHORIZED,
-        message: 'Not authorized'
-      })
-    }
-    return res.status(HttpCode.NO_CONTENT).json({})
-  } catch (err) {
-    next(err)
+    await Users.updateToken(req.user.id, null);
+    return res.status(HttpCode.NO_CONTENT).json({});
+  } catch (e) {
+    next(e);
   }
-}
+};
 
-// данные текущего пользователя
-const getCurrentUser = async (req, res, next) => {
+const current = async (req, res, next) => {
   try {
-    const { email, subscription } = req.user
-    const currentUser = await Users.findByEmail(email)
-    if (!currentUser) {
-      return res.status(HttpCode.UNATHORIZED).json({
-        status: 'error',
-        code: HttpCode.UNATHORIZED,
-        message: 'Not authorized'
-      })
-    }
+    const currentUser = await Users.findByToken(req.user.token);
+    const { email, subscription, avatarURL } = currentUser;
     return res.status(HttpCode.OK).json({
-      status: 'success',
+      status: '200 OK',
       code: HttpCode.OK,
-      data: { email, subscription }
-    })
-  } catch (err) {
-    next(err)
+      data: { email, subscription, avatarURL },
+    });
+  } catch (e) {
+    next(e);
   }
-}
+};
 
-// обновление подписки
-const updateSubscription = async (req, res, next) => {
+const avatars = async (req, res, next) => {
   try {
-    const { id } = req.user
-    const user = await Users.updateUserSubscription(id, req.body)
-    const { email, subscription } = user
-    if (user) {
-      return res.status(HttpCode.OK).json({
-        status: 'success',
-        code: HttpCode.OK,
-        data: { email, subscription }
-      })
-    }
-    return res.status(HttpCode.UNATHORIZED).json({
-      status: 'error',
-      code: HttpCode.UNATHORIZED,
-      message: 'Not authorized'
-    })
-  } catch (err) {
-    next(err)
+    const id = req.user.id;
+    const pathFile = req.file.path;
+    const url = await Users.updateAvatar(id, pathFile);
+    return res.status(HttpCode.OK).json({
+      status: '200 OK',
+      code: HttpCode.OK,
+      avatarURL: url,
+    });
+  } catch (e) {
+    next(e);
   }
-}
+};
 
 module.exports = {
-  reg, login, logout, getCurrentUser, updateSubscription
-}
+  signup,
+  login,
+  logout,
+  current,
+  avatars,
+};
