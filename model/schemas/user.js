@@ -28,6 +28,15 @@ const userSchema = new Schema({
     default: null,
   },
 
+   verify: {
+    type: Boolean,
+    default: false,
+  },
+  verifyToken: {
+    type: String,
+    required: [true, 'Verify token is required'],
+  },
+
 //   versionKey: false,
 //   timestamps: true,
 //   toObject: {
