@@ -3,6 +3,8 @@ require('dotenv').config()
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY
 const Users = require('../model/users')
 const { HttpCode } = require('../helpers/constants')
+const EmailService = require('../services/email')
+const {CreateSenderNodemailer,CreateSenderSendgrid} = require('../services/sender-email')
 // const User = require('../model/schemas/user')
 
 // регистрация
@@ -17,7 +19,13 @@ const reg = async (req, res, next) => {
       })
     }
     const newUser = await Users.create(req.body)
-    const { email, subscription } = newUser
+    const { email, subscription, name, verifyToken } = newUser
+    try {
+      const emailService = new EmailService(process.env.NODE_ENV, new CreateSenderSendgrid())
+      await emailService.sendeVirifyPasswordEmail(verifyToken,email,name )
+    } catch(e){
+      console.log(e.message)
+    }
     return res.status(HttpCode.CREATED).json({
       status: 'success',
       code: HttpCode.CREATED,
@@ -35,7 +43,7 @@ const login = async (req, res, next) => {
     const user = await Users.findByEmail(email)
     const isValidPassword = await user?.validPassword(password)
 
-    if (!user || !isValidPassword) {
+    if (!user || !isValidPassword || !user.verify) {
       return res.status(HttpCode.UNATHORIZED).json({
         status: 'error',
         code: HttpCode.UNATHORIZED,
