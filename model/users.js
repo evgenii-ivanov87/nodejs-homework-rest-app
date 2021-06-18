@@ -1,37 +1,46 @@
-// const { options } = require('joi')
-// const { token } = require('morgan')
-const User = require('./schemas/user')
+const User = require('../schemas/user');
 
-// найти по id (логаут)
-const findById = async (id) => {
-  return await User.findOne({ _id: id })
-}
+const findById = async id => {
+  return await User.findById(id);
+};
 
-// найти по email (логин)
-const findByEmail = async (email) => {
-  return await User.findOne({ email })
-}
+const findByEmail = async email => {
+  return await User.findOne({ email });
+};
 
-// создать (регистрация пользователя)
-const create = async (options) => {
-  const user = new User(options)
-  return await user.save()
-}
+const create = async options => {
+  const user = new User(options);
+  return await user.save();
+};
 
-// получение токена
 const updateToken = async (id, token) => {
-  return await User.updateOne({ _id: id }, { token })
-}
+  return await User.findByIdAndUpdate(id, { token });
+};
 
-// обновление подписки
-const updateUserSubscription = async (id, body) => {
-  const result = await User.findByIdAndUpdate(
-    id,
-    { ...body },
-    { new: true })
-  return result
-}
+const updateUser = async (id, body) => {
+  const result = await User.findByIdAndUpdate(id, { ...body }, { new: true });
+  return result;
+};
+
+const updateAvatar = async (id, avatarUrl, userIdImg = null) => {
+  return await User.findByIdAndUpdate(id, { userIdImg, avatarURL: avatarUrl });
+};
+
+const getUserByVerifyToken = async token => {
+  return await User.findOne({ verifyToken: token });
+};
+
+const updateVerifyToken = async (id, verify = true, token = null) => {
+  return await User.findByIdAndUpdate(id, { verify, verifyToken: token });
+};
 
 module.exports = {
-  findById, findByEmail, create, updateToken, updateUserSubscription
-}
+  findById,
+  findByEmail,
+  create,
+  updateToken,
+  updateUser,
+  updateAvatar,
+  getUserByVerifyToken,
+  updateVerifyToken,
+};

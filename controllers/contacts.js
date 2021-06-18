@@ -1,95 +1,145 @@
-const Contacts = require('../model/index')
+const contactsModel = require('../model/contacts');
+const { HttpCode } = require('../helpers/constants');
 
-// список всех контактов
-const getList = async (req, res, next) => {
+const getContactsList = async (req, res, next) => {
   try {
-    // console.log(req.user.id)
-    const userId = req.user.id
-    const { contacts, total, limit, offset } = await Contacts.listContacts(userId, req.query)
-    return res.json({ status: 'success', code: 200, data: { total, limit, offset, contacts } })
-  } catch (err) {
-    next(err)
-  }
-}
+    const userId = req.user.id;
 
-// поиск контакта по id
-const getOne = async (req, res, next) => {
-  try {
-    const userId = req.user.id
-    const contact = await Contacts.getContactById(userId, req.params.contactId)
-    if (contact) {
-      return res.json({ status: 'success', code: 200, data: { contact } })
-    }
-    return res.status(404).json({ status: 'error', code: 404, message: 'Not found' })
-  } catch (err) {
-    next(err)
-  }
-}
+    const { contacts, limit, offset, total, page } =
+      await contactsModel.listContacts(userId, req.query);
 
-// создать контакт
-const create = async (req, res, next) => {
-  try {
-    const userId = req.user.id
-    // const { name, email, phone } = req.body
-    const contact = await Contacts.addContact({ ...req.body, owner: userId })
-
-    return res.status(201).json({ status: 'success', code: 201, data: { contact } })
+    return res.status(HttpCode.OK).json({
+      status: 'success',
+      code: HttpCode.OK,
+      data: { total, limit, offset, page, contacts },
+    });
   } catch (error) {
-    if (error.name === 'ValidationError') {
-      error.code = 400
-      error.status = 'error'
-    }
-    next(error)
+    next(error);
   }
-}
+};
 
-// удалить контакт
-const remove = async (req, res, next) => {
+const getContactById = async (req, res, next) => {
   try {
-    const userId = req.user.id
-    const contact = await Contacts.removeContact(userId, req.params.contactId)
+    const userId = req.user.id;
+
+    const contact = await contactsModel.getContactById(
+      userId,
+      req.params.contactId,
+    );
+
+    // условие чтоб использовать в model.contacts.js методы с ById, иначе есть доступ у другого пользователя по id контакта
+    // if (userId !== String(contact?.owner._id)) {
+    //   return next({
+    //     status: HttpCode.NOT_FOUND,
+    //     message: 'Not Found',
+    //   });
+    // }
+
     if (contact) {
-      return res.json({ status: 'success', code: 200, data: { contact }, message: `Contact ${req.params.contactId} succesfully deleted` })
-    } return res.status(404).json({ status: 'error', code: 404, message: 'Not found' })
-  } catch (err) {
-    next(err)
-  }
-}
-
-// редактировать контакт
-const update = async (req, res, next) => {
-  try {
-    const userId = req.user.id
-    const contact = await Contacts.updateContact(userId, req.params.contactId, req.body)
-    if (contact._id) {
-      return res.json({ status: 'success', code: 200, data: { contact } })
+      return res.status(HttpCode.OK).json({
+        status: 'success',
+        code: HttpCode.OK,
+        data: { contact },
+      });
+    } else {
+      return next({
+        status: HttpCode.NOT_FOUND,
+        message: 'Not Found',
+      });
     }
-    res.status(404).json({ status: 'error', code: 404, message: 'Not found' })
-  } catch (err) {
-    next(err)
+  } catch (error) {
+    next(error);
   }
-}
+};
 
-// добавить/удалить в избранное
-const updateStatus = async (req, res, next) => {
+const addContact = async (req, res, next) => {
   try {
-    const userId = req.user.id
-    const contact = await Contacts.updateStatusContact(userId, req.params.contactId, req.body)
-    if (contact._id) {
-      return res.json({ status: 'success', code: 200, data: { contact } })
-    }
-    res.status(404).json({ status: 'error', code: 404, message: 'Not found' })
-  } catch (err) {
-    next(err)
+    const userId = req.user.id;
+    const newContact = await contactsModel.addContact({
+      ...req.body,
+      owner: userId,
+    });
+
+    return res.status(HttpCode.CREATED).json({
+      status: 'success',
+      code: HttpCode.CREATED,
+      data: { newContact },
+    });
+  } catch (error) {
+    next(error);
   }
-}
+};
+
+const removeContact = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const contact = await contactsModel.removeContact(
+      userId,
+      req.params.contactId,
+    );
+
+    // if (userId !== String(contact?.owner._id)) {
+    //   return next({
+    //     status: HttpCode.NOT_FOUND,
+    //     message: 'Not Found',
+    //   });
+    // }
+
+    if (contact) {
+      return res.status(HttpCode.OK).json({
+        status: 'success',
+        code: HttpCode.OK,
+        message: 'Contact Deleted',
+        data: { contact },
+      });
+    } else {
+      return next({
+        status: HttpCode.NOT_FOUND,
+        message: 'Contact Not Found',
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateContact = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const contact = await contactsModel.updateContact(
+      userId,
+      req.params.contactId,
+      req.body,
+    );
+
+    // if (userId !== String(contact?.owner._id)) {
+    //   return next({
+    //     status: HttpCode.NOT_FOUND,
+    //     message: 'Not Found',
+    //   });
+    // }
+
+    if (contact) {
+      return res.status(HttpCode.OK).json({
+        status: 'success',
+        code: HttpCode.OK,
+        data: { contact },
+      });
+    } else {
+      return next({
+        status: HttpCode.NOT_FOUND,
+        message: 'Contact Not Found',
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = {
-  getList,
-  getOne,
-  create,
-  remove,
-  update,
-  updateStatus
-
-}
+  getContactsList,
+  getContactById,
+  addContact,
+  removeContact,
+  updateContact,
+};
