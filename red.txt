@@ -1,5 +1,12 @@
-URI_DB=mongodb+srv://fidel:kors2020@cluster0.ejve6.mongodb.net/db-contacts?retryWrites=true&w=majority
+URI_DB=mongodb+srv://fidel:kors2020@cluster0.ejve6.mongodb.net/
+db-contacts?retryWrites=true&w=majority
 JWT_SECRET_KEY=WER453shc
 UPLOAD_DIR=uploads
 AVATARS_OF_USERS=images
-SENDGRID_API_KEY=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
+
+CLOUDINARY_URL=cloudinary://886374191998553:hiKBc0zzeSl21iLqmkWgaI7xBRk@fidelapi
+CLOUD_NAME=fidelapi
+API_KEY=886374191998553
+API_SECRET=hiKBc0zzeSl21iLqmkWgaI7xBRk
+
+SENDGRIT_API_KEY=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
